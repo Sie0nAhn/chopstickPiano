@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chopstick Piano Beat Battle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+    <style>
+
+    body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #121212;
+    overflow: hidden;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+#start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+#game-logo {
+    max-width: 45vw;
+    margin-bottom: 40px; /* 20px에서 40px로 변경하여 간격 늘림 */
+}
+
+#start-gif {
+    cursor: pointer;
+    max-width: 30%;
+    margin-top: 40px; /* 새로 추가하여 위쪽 간격 늘림 */
+}
+
+#countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20vw;
+  color: white;
+  z-index: 20;
+  display: none;
+  font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+}
+
+.countdown-number {
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.5s ease-in-out;
+}
+
+.countdown-number.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes fadeOutZoom {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+#level-up {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 15vw;
+    color: white;
+    display: none;
+    z-index: 10;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 1800px;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    display: none;
+}
+
+.piano {
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 250px;
+}
+
+.key {
+    flex: 1;
+    height: 100%;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 10px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.1s, transform 0.1s, box-shadow 0.3s;
+    z-index: 1;
+}
+
+.black-key {
+    position: absolute;
+    width: 4%;
+    height: 60%;
+    background-color: black;
+    color: white;
+    z-index: 2;
+    border-radius: 0 0 5px 5px;
+}
+
+black-key[data-note="c-3"] { left: 3.3%; }
+.black-key[data-note="d-3"] { left: 8.6%; }
+.black-key[data-note="f-3"] { left: 19%; }
+.black-key[data-note="g-3"] { left: 24%; }
+.black-key[data-note="a-4"] { left: 29.5%; }
+.black-key[data-note="c-4"] { left: 40%; }
+.black-key[data-note="d-4"] { left: 44.5%; }
+.black-key[data-note="f-4"] { left: 55%; }
+.black-key[data-note="g-4"] { left: 60.5%; }
+.black-key[data-note="a-5"] { left: 65.5%; }
+.black-key[data-note="c-5"] { left: 77%; }
+.black-key[data-note="d-5"] { left: 82%; }
+.black-key[data-note="f-5"] { left: 92%; }
+.key.active {
+background-color: #ffcccb;
+transform: scale(0.95);
+box-shadow: 0 0 15px #ff0000, 0 0 30px #ff4500;
+}
+
+.black-key.active {
+background-color: #ff6666;
+box-shadow: 0 0 15px #ff4500, 0 0 30px #ff4500;
+}
+
+
+
+#score, #level {
+    position: absolute;
+    color: white;
+    font-size: 1.2vw; /* 24px에서 36px로 변경 */
+    display: none;
+    font-family: 'Pretendard-Medium';
+}
+
+#score {
+    top: 10px;
+    right: 20px;
+}
+
+#level {
+    top: 10px;
+    left: 20px;
+}
+
+.feedback {
+    position: absolute;
+    font-size: 36px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.feedback.perfect {
+    color: #00ff00;
+}
+
+.feedback.great {
+    color: #ffa500;
+}
+
+.feedback.fail {
+    color: #ff0000;
+}
+
+.timing-bar {
+    position: absolute;
+    width: 100%;
+    height: 5px;
+    background-color: #00ff00;
+    top: -5px;
+}
+
+.note {
+    position: absolute;
+    width: 4%;
+    height: 40px;
+    border-radius: 0 0 5px 5px;
+    animation: fall linear;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: black;
+}
+.note[data-note^="c"] { background-color: #ff6666; }
+.note[data-note^="d"] { background-color: #ffb266; }
+.note[data-note^="e"] { background-color: #ffff66; }
+.note[data-note^="f"] { background-color: #66ff66; }
+.note[data-note^="g"] { background-color: #66ffff; }
+.note[data-note^="a"] { background-color: #6666ff; }
+.note[data-note^="b"] { background-color: #ff66ff; }
+
+@keyframes fall {
+    from { top: -40px; }
+    to { top: calc(100% - 250px); }
+}
+
+#game-over-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+    font-family: 'Pretendard-Medium';
+    font-weight: 300;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#game-over-screen p {
+    font-size: 2vw;
+    margin: 30px 0;
+}
+
+#restart-gif {
+    cursor: pointer;
+    max-width: 25%;
+    margin-top: 10vh;
+}
+
+        #game-over-image {
+    width: 70vw;
+    
+    animation: gameOverAnimation 2s infinite;
+}
+        @keyframes gameOverAnimation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+@font-face {
+    font-family: 'Pretendard-Medium';
+    src: url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Bold.woff') format('woff');
+    font-weight: 500;
+    font-style: normal;
+}
+</style>
+
+</head>
+<body>
+    <div id="start-screen">
+        <img src="logo.png" alt="게임 로고" id="game-logo">
+        <img src="https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExamhiaHZrZjhzb3ZoZ25odWNsZ2ZxbHdwdnJweGU0dDV1NHV4eGtscCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/coBIzlrDq93doYaA9U/giphy.gif" alt="시작 GIF" id="start-gif" style="cursor: pointer; max-width: 30%;">
+    </div>
+    <div id="countdown">
+  <div class="countdown-number";></div> </div>
+    <div class="game-container">
+        <div id="level-up"></div>
+        <div id="score">점수: 0</div>
+        <div id="level">레벨: 1</div>
+        <div class="piano">
+            <div class="key" data-key="z,ㅋ" data-note="c3">z</div>
+        <div class="black-key key" data-key="s,ㄴ" data-note="c-3">s</div>
+        <div class="key" data-key="x,ㅌ" data-note="d3">x</div>
+        <div class="black-key key" data-key="d,ㅇ" data-note="d-3">d</div>
+        <div class="key" data-key="c,ㅊ" data-note="e3">c</div>
+        <div class="key" data-key="v,ㅍ" data-note="f3">v</div>
+        <div class="black-key key" data-key="g,ㅎ" data-note="f-3">g</div>
+        <div class="key" data-key="b,ㅠ" data-note="g3">b</div>
+        <div class="black-key key" data-key="h,ㅗ" data-note="g-3">h</div>
+        <div class="key" data-key="n,ㅜ" data-note="a4">n</div>
+        <div class="black-key key" data-key="j,ㅓ" data-note="a-4">j</div>
+        <div class="key" data-key="m,ㅡ" data-note="b4">m</div>
+        <div class="key" data-key="q,ㅂ" data-note="c4">q</div>
+        <div class="black-key key" data-key="2" data-note="c-4">2</div>
+        <div class="key" data-key="w,ㅈ" data-note="d4">w</div>
+        <div class="black-key key" data-key="3" data-note="d-4">3</div>
+        <div class="key" data-key="e,ㄷ" data-note="e4">e</div>
+        <div class="key" data-key="r,ㄱ" data-note="f4">r</div>
+        <div class="black-key key" data-key="5" data-note="f-4">5</div>
+        <div class="key" data-key="t,ㅅ" data-note="g4">t</div>
+        <div class="black-key key" data-key="6" data-note="g-4">6</div>
+        <div class="key" data-key="y,ㅛ" data-note="a5">y</div>
+        <div class="black-key key" data-key="7" data-note="a-5">7</div>
+        <div class="key" data-key="u,ㅕ" data-note="b5">u</div>
+        <div class="key" data-key="i,ㅑ" data-note="c5">i</div>
+        <div class="black-key key" data-key="9" data-note="c-5">9</div>
+        <div class="key" data-key="o,ㅐ" data-note="d5">o</div>
+        <div class="black-key key" data-key="0" data-note="d-5">0</div>
+        <div class="key" data-key="p,ㅔ" data-note="e5">p</div>
+        <div class="key" data-key="[" data-note="f5">[</div>
+        <div class="black-key key" data-key="=" data-note="f-5">=</div>
+        <div class="key" data-key="]" data-note="g5">]</div>
+        </div>
+        </div>
+    </div>
+    <script>
+
+        const keys = document.querySelectorAll('.key');
+const gameContainer = document.querySelector('.game-container');
+const piano = document.querySelector('.piano');
+const scoreElement = document.getElementById('score');
+const levelElement = document.getElementById('level');
+const startGif = document.getElementById('start-gif');
+const countdownElement = document.getElementById('countdown');
+const levelUpElement = document.getElementById('level-up');
+const startScreen = document.getElementById('start-screen');
+
+let score = 0;
+let level = 1;
+let noteInterval = 5000; // 초기 속도 (0.6배속)
+let gameStarted = false;
+
+const chopsticksMelody = [
+  { note: "f4,g4", time: 150 },
+  { note: "f4,g4", time: 750 },
+  { note: "f4,g4", time: 1500 },
+  { note: "f4,g4", time: 2250 },
+  { note: "f4,g4", time: 3000 },
+  { note: "f4,g4", time: 3750 },
+  { note: "e4,g4", time: 4500 },
+  { note: "e4,g4", time: 5250 },
+  { note: "e4,g4", time: 6000 },
+  { note: "e4,g4", time: 6750 },
+  { note: "e4,g4", time: 7500 },
+  { note: "e4,g4", time: 8250 },
+  { note: "d4,b5", time: 9000 },
+  { note: "d4,b5", time: 9750 },
+  { note: "d4,b5", time: 10500 },
+  { note: "e4,b5", time: 11250 },
+  { note: "d4,b5", time: 12000 },
+  { note: "d4,b5", time: 12750 },
+  { note: "c4,c5", time: 13500 },
+  { note: "c4,c5", time: 14250 },
+  { note: "c4,c5", time: 15000 },
+  { note: "c4,c5", time: 15750 },
+  { note: "c4,c5", time: 16500 },
+  { note: "d4,b5", time: 17250 },
+  { note: "e4,a5", time: 18000 },
+  { note: "f4,g4", time: 18750 },
+  { note: "f4,g4", time: 19500 },
+  { note: "f4,g4", time: 20250 },
+  { note: "f4,g4", time: 21000 },
+  { note: "f4,g4", time: 21750 },
+  { note: "f4,g4", time: 22500 },
+  { note: "e4,g4", time: 23250 },
+  { note: "e4,g4", time: 24000 },
+  { note: "e4,g4", time: 24750 },
+  { note: "e4,g4", time: 25500 },
+  { note: "e4,g4", time: 26250 },
+  { note: "e4,g4", time: 27000 },
+  { note: "d4,b5", time: 27750 },
+  { note: "d4,b5", time: 28500 },
+  { note: "d4,b5", time: 29250 },
+  { note: "e4,b5", time: 30000 },
+  { note: "d4,b5", time: 30750 },
+  { note: "d4,b5", time: 31500 },
+  { note: "e4,c5", time: 32250 },
+  { note: "g4", time: 33000 },
+  { note: "e4", time: 33750 },
+  { note: "c4,c5", time: 34500 },
+  { note: "c5,e5", time: 36750 },
+  { note: "b5,d5", time: 37500 },
+  { note: "b5,d5", time: 38250 },
+  { note: "a5,c5", time: 39000 },
+  { note: "g4,b5", time: 39750 },
+  { note: "g4,b5", time: 40500 },
+  { note: "g4,b5", time: 41250 },
+  { note: "f4,a5", time: 42000 },
+  { note: "d4,e4,g4", time: 42750 },
+  { note: "c4,e4,g4", time: 43500 },
+  { note: "e4,g4", time: 44250 },
+  { note: "f4,a5", time: 45000 },
+  { note: "e4,g4", time: 45750 },
+  { note: "d4,f4", time: 46500 },
+  { note: "d4,f4", time: 47250 },
+  { note: "d4,f4", time: 48000 },
+  { note: "d4,f4", time: 48750 },
+  { note: "e4,g4", time: 49500 },
+  { note: "d4,f4", time: 50250 },
+  { note: "c4,e4", time: 51000 },
+  { note: "d4,f4", time: 51750 },
+  { note: "d-4,f4", time: 52500 },
+  { note: "d4,f-4", time: 53250 },
+  { note: "e4,g4", time: 54000 },
+  { note: "f-4,e5", time: 56250 },
+  { note: "f-4,e-5", time: 57000 },
+  { note: "f4,d5", time: 57750 },
+  { note: "f4,d5", time: 58500 },
+  { note: "e4,c5", time: 59250 },
+  { note: "d4,b5", time: 60000 },
+  { note: "d4,b5", time: 60750 },
+  { note: "d4,b5", time: 61500 },
+  { note: "c4,a5", time: 62250 },
+  { note: "d4,e4,g4", time: 63000 },
+  { note: "c4,e4,g4", time: 63750 },
+  { note: "c4,e4,g4", time: 64500 },
+  { note: "e4,g4", time: 65250 },
+  { note: "f4,a5", time: 66000 },
+  { note: "e4,g4", time: 66750 },
+  { note: "a3,f4", time: 67500 },
+  { note: "a3,f4", time: 68250 },
+  { note: "a3,f4", time: 69750 },
+  { note: "a3,f4", time: 70500 },
+  { note: "b3,g4", time: 71250 },
+  { note: "a4,f4", time: 72000 },
+  { note: "g3,e4", time: 72750 },
+  { note: "g3,e4", time: 73500 },
+  { note: "a3,f4", time: 74250 },
+  { note: "b3,g4", time: 75000 },
+  { note: "g3,g4", time: 75750 }
+];
+
+
+
+startGif.addEventListener('click', () => {
+    startScreen.style.display = 'none';
+    startCountdown();
+});
+
+
+function startCountdown() {
+    let count = 3;
+    const countdownElement = document.getElementById('countdown');
+    const numberElement = countdownElement.querySelector('.countdown-number');
+    countdownElement.style.display = 'block';
+    gameContainer.style.display = 'none';
+    startScreen.style.display = 'none';
+
+    const colors = ['#FF5733', '#33FF57', '#3357FF'];
+
+    function updateCountdown() {
+        if (count > 0) {
+            numberElement.textContent = count;
+            numberElement.style.color = colors[count - 1];
+            numberElement.classList.add('active');
+
+            setTimeout(() => {
+                numberElement.style.animation = 'fadeOutZoom 0.5s forwards';
+                setTimeout(() => {
+                    numberElement.classList.remove('active');
+                    numberElement.style.animation = '';
+                    count--;
+                    updateCountdown();
+                }, 500);
+            }, 500);
+        } else {
+            numberElement.textContent = 'Start!';
+            numberElement.style.color = '#FFFF33';
+            numberElement.classList.add('active');
+
+            setTimeout(() => {
+                numberElement.style.animation = 'fadeOutZoom 0.5s forwards';
+                setTimeout(() => {
+                    countdownElement.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    startGame();
+                }, 500);
+            }, 500);
+        }
+    }
+
+    updateCountdown();
+}
+function playSound(note) {
+    const audio = new Audio(`notes/${note}.mp3`);
+    audio.play().catch((error) => console.error(`Error playing sound: ${error}`));
+}
+
+function createNote(notes) {
+    notes.split(',').forEach(note => {
+        const noteElement = document.createElement('div');
+        noteElement.classList.add('note');
+        noteElement.dataset.note = note;
+
+        const key = document.querySelector(`.key[data-note="${note}"]`);
+        if (key) {
+            const keyRect = key.getBoundingClientRect();
+            const pianoRect = piano.getBoundingClientRect();
+            noteElement.style.left = `${keyRect.left - pianoRect.left}px`;
+            noteElement.style.width = `${keyRect.width}px`;
+            noteElement.textContent = key.getAttribute('data-key').split(',')[0];
+            gameContainer.appendChild(noteElement);
+
+            noteElement.style.animation = `fall ${noteInterval / 1000}s linear`;
+            noteElement.addEventListener('animationend', () => {
+            noteElement.remove();
+            consecutiveMisses++;
+            checkGameOver();
+});
+        }
+    });
+}
+
+function activateKey(keyElement) {
+    if (!keyElement) return;
+
+    const note = keyElement.getAttribute('data-note');
+    playSound(note);
+
+    keyElement.classList.add('active');
+    setTimeout(() => {
+        keyElement.classList.remove('active');
+    }, 300);
+
+    checkNoteHit(note, keyElement);
+}
+
+function checkNoteHit(note, keyElement) {
+  const fallingNotes = document.querySelectorAll('.note');
+  let hitSuccess = false;
+
+  fallingNotes.forEach(noteElement => {
+    if (noteElement.dataset.note === note) {
+      const noteRect = noteElement.getBoundingClientRect();
+      const keyRect = keyElement.getBoundingClientRect();
+
+      const overlapPercentage = Math.max(0, Math.min(noteRect.bottom, keyRect.bottom) - Math.max(noteRect.top, keyRect.top)) / noteRect.height;
+
+      if (overlapPercentage > 0) {
+        if (overlapPercentage >= 0.5) {
+          score += 10;
+          showFeedback('perfect', keyElement);
+        } else {
+          score += 5;
+          showFeedback('great', keyElement);
+        }
+        scoreElement.textContent = `점수: ${score}`;
+        noteElement.remove();
+        hitSuccess = true;
+        consecutiveMisses = 0; // 성공 시 연속 실패 횟수 초기화
+      }
+    }
+  });
+
+  if (!hitSuccess) {
+    showFeedback('fail', keyElement);
+    // consecutiveMisses++; 이 줄은 제거합니다.
+    // checkGameOver(); 이 줄도 제거합니다.
+}
+}
+
+
+
+function showFeedback(type, element) {
+    const feedback = document.createElement('div');
+    feedback.classList.add('feedback', type);
+    feedback.textContent = type === 'perfect' ? 'Perfect!' : type === 'great' ? 'Great!' : 'Fail';
+
+    const rect = element.getBoundingClientRect();
+    feedback.style.left = `${rect.left + rect.width / 2}px`;
+    feedback.style.top = `${rect.top - 50}px`;
+
+    document.body.appendChild(feedback);
+
+    setTimeout(() => {
+        feedback.style.opacity = '1';
+    }, 0);
+
+    setTimeout(() => {
+        feedback.style.opacity = '0';
+        setTimeout(() => {
+            feedback.remove();
+        }, 300);
+    }, 1000);
+}
+
+function updateLevel() {
+  level++;
+  levelElement.textContent = `레벨: ${level}`;
+  levelUpElement.textContent = `레벨 ${level}`;
+  levelUpElement.style.display = 'block';
+
+  setTimeout(() => {
+    levelUpElement.style.display = 'none';
+    // 1초 후에 새로운 노트 생성 시작
+    setTimeout(() => {
+      playMelody();
+    }, 1000);
+  }, 2000);
+
+  if (level >= 2) {
+    noteInterval = Math.max(1000, noteInterval - 50);
+  }
+}
+
+function startGame() {
+    if (gameStarted) return;
+    gameStarted = true;
+
+    startScreen.style.display = 'none';
+    gameContainer.style.display = 'block';
+    scoreElement.style.display = 'block';
+    levelElement.style.display = 'block';
+
+    score = 0;
+    level = 1;
+    noteInterval = 5000;
+    scoreElement.textContent = `점수: ${score}`;
+    levelElement.textContent = `레벨: ${level}`;
+
+    playMelody();
+}
+let melodyTimeouts = [];
+
+function playMelody() {
+    // 기존 타임아웃 제거
+    melodyTimeouts.forEach(timeout => clearTimeout(timeout));
+    melodyTimeouts = [];
+
+    chopsticksMelody.forEach(({note, time}, index) => {
+        const timeout = setTimeout(() => {
+            createNote(note);
+            if (index === chopsticksMelody.length - 1) {
+                setTimeout(() => {
+                    updateLevel();
+                    playMelody();
+                }, 1000);
+            }
+        }, time * (noteInterval / 5000)); // noteInterval을 2800으로 나눔
+        melodyTimeouts.push(timeout);
+    });
+}
+
+window.addEventListener('keydown', (e) => {
+    const keyElement = document.querySelector(`.key[data-key*="${e.key}"]`);
+    activateKey(keyElement);
+});
+
+keys.forEach(key => {
+    key.addEventListener('click', () => activateKey(key));
+    const timingBar = document.createElement('div');
+    timingBar.classList.add('timing-bar');
+    key.appendChild(timingBar);
+});
+
+
+
+let consecutiveMisses = 0;
+const MAX_CONSECUTIVE_MISSES = 15;
+
+function checkGameOver() {
+    if (consecutiveMisses >= MAX_CONSECUTIVE_MISSES) {
+        gameOver();
+    }
+}
+function gameOver() {
+    gameStarted = false;
+    gameContainer.style.display = 'none';
+
+    const gameOverScreen = document.createElement('div');
+    gameOverScreen.id = 'game-over-screen';
+    gameOverScreen.innerHTML = `
+        <img src="over.png" alt="GAME OVER" id="game-over-image">
+        <p>레벨: ${level} | 점수: ${score}</p>
+        <img src="https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExamhiaHZrZjhzb3ZoZ25odWNsZ2ZxbHdwdnJweGU0dDV1NHV4eGtscCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/coBIzlrDq93doYaA9U/giphy.gif" alt="재시작" id="restart-gif">
+    `;
+    document.body.appendChild(gameOverScreen);
+
+    document.getElementById('restart-gif').addEventListener('click', resetGame);
+}
+
+function resetGame() {
+    // 게임 오버 화면 제거
+    const gameOverScreen = document.getElementById('game-over-screen');
+    if (gameOverScreen) {
+        document.body.removeChild(gameOverScreen);
+    }
+
+    // 게임 상태 초기화
+    score = 0;
+    level = 1;
+    noteInterval = 5000;
+    consecutiveMisses = 0;
+
+    // 화면 초기화
+    gameContainer.style.display = 'none';
+    startScreen.style.display = 'flex';
+
+    // 모든 노트 제거
+    document.querySelectorAll('.note').forEach(note => note.remove());
+
+    // 점수와 레벨 표시 초기화
+    scoreElement.textContent = '점수: 0';
+    levelElement.textContent = '레벨: 1';
+
+    // 게임 시작 준비
+    gameStarted = false;
+
+    // 멜로디 타임아웃 초기화
+    melodyTimeouts.forEach(timeout => clearTimeout(timeout));
+    melodyTimeouts = [];
+
+    // 카운트다운 시작
+    startCountdown();
+}
+    </script>
+</body>
+</html>
