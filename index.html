@@ -686,41 +686,34 @@ function gameOver() {
     `;
     document.body.appendChild(gameOverScreen);
 
-    document.getElementById('restart-gif').addEventListener('click', resetGame);
+    const restartGif = document.getElementById('restart-gif');
+    restartGif.addEventListener('click', resetGame);
 }
 
 function resetGame() {
-    // 게임 오버 화면 제거
     const gameOverScreen = document.getElementById('game-over-screen');
     if (gameOverScreen) {
         document.body.removeChild(gameOverScreen);
     }
 
-    // 게임 상태 초기화
     score = 0;
     level = 1;
     noteInterval = 5000;
     consecutiveMisses = 0;
 
-    // 화면 초기화
     gameContainer.style.display = 'none';
-    startScreen.style.display = 'flex';
+    startScreen.style.display = 'none';
 
-    // 모든 노트 제거
     document.querySelectorAll('.note').forEach(note => note.remove());
 
-    // 점수와 레벨 표시 초기화
     scoreElement.textContent = '점수: 0';
     levelElement.textContent = '레벨: 1';
 
-    // 게임 시작 준비
     gameStarted = false;
 
-    // 멜로디 타임아웃 초기화
     melodyTimeouts.forEach(timeout => clearTimeout(timeout));
     melodyTimeouts = [];
 
-    // 카운트다운 시작
     startCountdown();
 }
     </script>
