@@ -335,6 +335,34 @@ button:hover {
         box-shadow: 0 0 0 0 rgba(128, 128, 128, 0);
     }
 }
+#hand-recognition-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 100;
+}
+
+#hand-image {
+  max-width: 300px;
+  margin: 20px 0;
+}
+
+#start-hand-recognition {
+  padding: 10px 20px;
+  font-size: 18px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
 </style>
 
 </head>
@@ -342,6 +370,11 @@ button:hover {
     <div id="webcam-container">
     <video id="webcam" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
+    <div id="hand-recognition-page" style="display: none;">
+    <h2>손 인식 모드</h2>
+    <p>카메라를 허용하고 손을 화면에 보여주세요.</p>
+    <img src="hand.png" alt="손 이미지" id="hand-image">
+  </div>
     <div id="start-screen">
 <img src="logo.png" alt="게임 로고" id="game-logo">
 <div id="mode-selection">
@@ -359,7 +392,7 @@ button:hover {
         <div id="score">점수: 0</div>
         <div id="level">레벨: 1</div>
         <div class="piano">
-            <div class="key" data-key="a,ㅁ" data-note="c4">a</div>
+         <div class="key" data-key="a,ㅁ" data-note="c4">a</div>
         <div class="black-key key" data-key="ㅈ,w" data-note="c-4">w</div>
         <div class="key" data-key="s,ㄴ" data-note="d4">s</div>
         <div class="black-key key" data-key="ㄷ,e" data-note="d-4">e</div>
@@ -386,20 +419,19 @@ let gameMode = null;
 
 function selectMode(mode) {
     gameMode = mode;
-
-    // 손 모드일 때 손 인식 활성화, 키보드 모드일 때 손 인식 비활성화
-    if (mode === 'keyboard') {
-        fingerIndicator.style.display = 'none'; // 키보드 모드에서는 숨기기
-    } else if (mode === 'hand') {
-        fingerIndicator.style.display = 'block'; // 손 모드에서는 보이기
-    }
-
     document.getElementById('start-screen').style.display = 'none';
+    
+    if (mode === 'keyboard') {
+        fingerIndicator.style.display = 'none';
+        startCountdown();
+    } else if (mode === 'hand') {
+        fingerIndicator.style.display = 'block';
+        showHandRecognitionPage();
+    }
 }
-
 document.getElementById('hand-mode').addEventListener('click', () => {
-selectMode('hand');
-startCountdown();
+  selectMode('hand');
+  showHandRecognitionPage();
 });
 document.getElementById('keyboard-mode').addEventListener('click', () => {
 selectMode('keyboard');
@@ -418,19 +450,25 @@ const startScreen = document.getElementById('start-screen');
 let video, canvas, ctx, model, fingerIndicator;
 
 async function setupWebcam() {
-    video = document.getElementById('webcam');
-    canvas = document.getElementById('canvas');
-    ctx = canvas.getContext('2d');
-    fingerIndicator = document.getElementById('finger-indicator');
+  video = document.getElementById('webcam');
+  canvas = document.getElementById('canvas');
+  ctx = canvas.getContext('2d');
+  fingerIndicator = document.getElementById('finger-indicator');
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
 
-    return new Promise((resolve) => {
-        video.onloadedmetadata = () => {
-            resolve(video);
-        };
-    });
+  return new Promise((resolve) => {
+    video.onloadedmetadata = () => {
+      resolve(video);
+    };
+  });
+}
+
+function showHandRecognitionPage() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('hand-recognition-page').style.display = 'flex';
+    setupWebcamAndDetectHand();
 }
 
 async function loadHandposeModel() {
@@ -462,6 +500,27 @@ function checkPianoKeyPress() {
             releaseKey(key);
         }
     });
+}
+async function setupWebcamAndDetectHand() {
+    try {
+        await setupWebcam();
+        await loadHandposeModel();
+        detectHandAndStartGame();
+    } catch (error) {
+        console.error('카메라 접근 오류:', error);
+        alert('카메라 접근이 허용되지 않았습니다. 손 인식 모드를 사용하려면 카메라 접근을 허용해주세요.');
+    }
+}
+async function detectHandAndStartGame() {
+    const video = document.getElementById('webcam');
+    const predictions = await model.estimateHands(video);
+
+    if (predictions.length > 0) {
+        document.getElementById('hand-recognition-page').style.display = 'none';
+        startCountdown();
+    } else {
+        requestAnimationFrame(detectHandAndStartGame);
+    }
 }
 
 async function detectHand() {
@@ -530,7 +589,7 @@ let noteInterval = 5000; // 초기 속도 (0.6배속)
 let gameStarted = false;
 
 const chopsticksMelody = [
-  { note: "c4", time: 500 },
+   { note: "c4", time: 500 },
   { note: "d4", time: 1500 },
   { note: "e4", time: 2000 },
   { note: "c4", time: 3500 },
