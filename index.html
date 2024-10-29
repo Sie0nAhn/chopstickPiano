@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chopstick Piano Beat Battle</title>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
     <style>
 
     body {
@@ -133,19 +135,14 @@
     border-radius: 0 0 5px 5px;
 }
 
-black-key[data-note="c-3"] { left: 3.3%; }
-.black-key[data-note="d-3"] { left: 8.6%; }
-.black-key[data-note="f-3"] { left: 19%; }
-.black-key[data-note="g-3"] { left: 24%; }
-.black-key[data-note="a-4"] { left: 29.5%; }
-.black-key[data-note="c-4"] { left: 40%; }
-.black-key[data-note="d-4"] { left: 44.5%; }
-.black-key[data-note="f-4"] { left: 55%; }
-.black-key[data-note="g-4"] { left: 60.5%; }
-.black-key[data-note="a-5"] { left: 65.5%; }
-.black-key[data-note="c-5"] { left: 77%; }
-.black-key[data-note="d-5"] { left: 82%; }
-.black-key[data-note="f-5"] { left: 92%; }
+.black-key[data-note="c-4"] { left: 6%; }
+.black-key[data-note="d-4"] { left: 14%; }
+.black-key[data-note="f-4"] { left: 31%; }
+.black-key[data-note="g-4"] { left: 40%; }
+.black-key[data-note="a-5"] { left: 48%; }
+.black-key[data-note="c-5"] { left: 64%; }
+.black-key[data-note="d-5"] { left: 73%; }
+.black-key[data-note="f-5"] { left: 89%; }
 .key.active {
 background-color: #ffcccb;
 transform: scale(0.95);
@@ -273,14 +270,88 @@ box-shadow: 0 0 15px #ff4500, 0 0 30px #ff4500;
     font-weight: 500;
     font-style: normal;
 }
+#webcam-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#webcam, #canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+}
+
+#finger-indicator {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background-color: rgba(255, 0, 0, 0.5);
+  border: 2px solid red;
+  border-radius: 50%;
+  z-index: 20;
+  pointer-events: none;
+}
+#mode-selection {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* 버튼 사이의 간격 */
+}
+
+button {
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 1.5rem;
+    background-color: gray;
+    color: yellow;
+    padding: 10px 20px;
+    border: none;  
+    outline: none; 
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+button:hover {
+    background-color: red;
+    transform: scale(1.05);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(128, 128, 128, 0.7);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(128, 128, 128, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(128, 128, 128, 0);
+    }
+}
 </style>
 
 </head>
 <body>
+    <div id="webcam-container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
     <div id="start-screen">
-        <img src="logo.png" alt="게임 로고" id="game-logo">
-        <img src="https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExamhiaHZrZjhzb3ZoZ25odWNsZ2ZxbHdwdnJweGU0dDV1NHV4eGtscCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/coBIzlrDq93doYaA9U/giphy.gif" alt="시작 GIF" id="start-gif" style="cursor: pointer; max-width: 30%;">
-    </div>
+<img src="logo.png" alt="게임 로고" id="game-logo">
+<div id="mode-selection">
+<button id="hand-mode">hand mode</button>
+<button id="keyboard-mode">keyboard mode</button>
+</div>
+</div>
+    
+</div>
+<div id="finger-indicator"></div>
     <div id="countdown">
   <div class="countdown-number";></div> </div>
     <div class="game-container">
@@ -288,52 +359,170 @@ box-shadow: 0 0 15px #ff4500, 0 0 30px #ff4500;
         <div id="score">점수: 0</div>
         <div id="level">레벨: 1</div>
         <div class="piano">
-            <div class="key" data-key="z,ㅋ" data-note="c3">z</div>
-        <div class="black-key key" data-key="s,ㄴ" data-note="c-3">s</div>
-        <div class="key" data-key="x,ㅌ" data-note="d3">x</div>
-        <div class="black-key key" data-key="d,ㅇ" data-note="d-3">d</div>
-        <div class="key" data-key="c,ㅊ" data-note="e3">c</div>
-        <div class="key" data-key="v,ㅍ" data-note="f3">v</div>
-        <div class="black-key key" data-key="g,ㅎ" data-note="f-3">g</div>
-        <div class="key" data-key="b,ㅠ" data-note="g3">b</div>
-        <div class="black-key key" data-key="h,ㅗ" data-note="g-3">h</div>
-        <div class="key" data-key="n,ㅜ" data-note="a4">n</div>
-        <div class="black-key key" data-key="j,ㅓ" data-note="a-4">j</div>
-        <div class="key" data-key="m,ㅡ" data-note="b4">m</div>
-        <div class="key" data-key="q,ㅂ" data-note="c4">q</div>
-        <div class="black-key key" data-key="2" data-note="c-4">2</div>
-        <div class="key" data-key="w,ㅈ" data-note="d4">w</div>
-        <div class="black-key key" data-key="3" data-note="d-4">3</div>
-        <div class="key" data-key="e,ㄷ" data-note="e4">e</div>
-        <div class="key" data-key="r,ㄱ" data-note="f4">r</div>
-        <div class="black-key key" data-key="5" data-note="f-4">5</div>
-        <div class="key" data-key="t,ㅅ" data-note="g4">t</div>
-        <div class="black-key key" data-key="6" data-note="g-4">6</div>
-        <div class="key" data-key="y,ㅛ" data-note="a5">y</div>
-        <div class="black-key key" data-key="7" data-note="a-5">7</div>
-        <div class="key" data-key="u,ㅕ" data-note="b5">u</div>
-        <div class="key" data-key="i,ㅑ" data-note="c5">i</div>
-        <div class="black-key key" data-key="9" data-note="c-5">9</div>
-        <div class="key" data-key="o,ㅐ" data-note="d5">o</div>
-        <div class="black-key key" data-key="0" data-note="d-5">0</div>
-        <div class="key" data-key="p,ㅔ" data-note="e5">p</div>
-        <div class="key" data-key="[" data-note="f5">[</div>
-        <div class="black-key key" data-key="=" data-note="f-5">=</div>
-        <div class="key" data-key="]" data-note="g5">]</div>
-        </div>
+            <div class="key" data-key="a,ㅁ" data-note="c4">a</div>
+        <div class="black-key key" data-key="ㅈ,w" data-note="c-4">w</div>
+        <div class="key" data-key="s,ㄴ" data-note="d4">s</div>
+        <div class="black-key key" data-key="ㄷ,e" data-note="d-4">e</div>
+        <div class="key" data-key="d,ㅇ" data-note="e4">d</div>
+        <div class="key" data-key="f,ㄹ" data-note="f4">f</div>
+        <div class="black-key key" data-key="t,ㅅ" data-note="f-4">t</div>
+        <div class="key" data-key="g,ㅎ" data-note="g4">g</div>
+        <div class="black-key key" data-key="y,ㅛ" data-note="g-4">y</div>
+        <div class="key" data-key="h,ㅗ" data-note="a5">h</div>
+        <div class="black-key key" data-key="u,ㅕ" data-note="a-5">u</div>
+        <div class="key" data-key="j,ㅓ" data-note="b5">j</div>
+        <div class="key" data-key="k,ㅏ" data-note="c5">ㅏ</div>
+        <div class="black-key key" data-key="ㅐ,o" data-note="c-5">o</div>
+        <div class="key" data-key="ㅣ,l" data-note="d5">l</div>
+        <div class="black-key key" data-key="p,ㅔ" data-note="d-5">p</div>
+        <div class="key" data-key=";" data-note="e5">;</div>
+        <div class="key" data-key="'" data-note="f5">'</div>
+        <div class="black-key key" data-key="]" data-note="f-5">]</div>
+        <div class="key" data-key="enter,Enter" data-note="g5">enter</div>
         </div>
     </div>
     <script>
+let gameMode = null;
 
-        const keys = document.querySelectorAll('.key');
+function selectMode(mode) {
+    gameMode = mode;
+
+    // 손 모드일 때 손 인식 활성화, 키보드 모드일 때 손 인식 비활성화
+    if (mode === 'keyboard') {
+        fingerIndicator.style.display = 'none'; // 키보드 모드에서는 숨기기
+    } else if (mode === 'hand') {
+        fingerIndicator.style.display = 'block'; // 손 모드에서는 보이기
+    }
+
+    document.getElementById('start-screen').style.display = 'none';
+}
+
+document.getElementById('hand-mode').addEventListener('click', () => {
+selectMode('hand');
+startCountdown();
+});
+document.getElementById('keyboard-mode').addEventListener('click', () => {
+selectMode('keyboard');
+startCountdown();
+});
+
+const keys = document.querySelectorAll('.key');
 const gameContainer = document.querySelector('.game-container');
 const piano = document.querySelector('.piano');
 const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
-const startGif = document.getElementById('start-gif');
+
 const countdownElement = document.getElementById('countdown');
 const levelUpElement = document.getElementById('level-up');
 const startScreen = document.getElementById('start-screen');
+let video, canvas, ctx, model, fingerIndicator;
+
+async function setupWebcam() {
+    video = document.getElementById('webcam');
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+    fingerIndicator = document.getElementById('finger-indicator');
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+
+    return new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+            resolve(video);
+        };
+    });
+}
+
+async function loadHandposeModel() {
+    model = await handpose.load();
+}
+
+let smoothedX = 0;
+let smoothedY = 0;
+const smoothingFactor = 0.7; // 0.8에서 0.7로 변경하여 더 부드럽게 만듭니다.
+let lastActivatedKey = null;
+
+function checkPianoKeyPress() {
+    if (gameMode !== 'hand') return;
+
+    const fingerRect = fingerIndicator.getBoundingClientRect();
+    const pianoRect = piano.getBoundingClientRect();
+
+    keys.forEach(key => {
+        const keyRect = key.getBoundingClientRect();
+        const isWithinKey =
+            fingerRect.left < keyRect.right &&
+            fingerRect.right > keyRect.left &&
+            fingerRect.top < keyRect.bottom &&
+            fingerRect.bottom > keyRect.top;
+
+        if (isWithinKey) {
+            activateKey(key);
+        } else {
+            releaseKey(key);
+        }
+    });
+}
+
+async function detectHand() {
+    if (gameMode !== 'hand') {
+        fingerIndicator.style.display = 'none';
+        return;
+    }
+
+    const predictions = await model.estimateHands(video);
+
+    if (predictions.length > 0) {
+        const hand = predictions[0];
+        const indexFinger = hand.landmarks[8];
+        const middleFinger = hand.landmarks[12];
+
+        const averageX = (indexFinger[0] + middleFinger[0]) / 2;
+        const averageY = (indexFinger[1] + middleFinger[1]) / 2;
+
+        const adjustedX = video.videoWidth - averageX;
+        const adjustedY = averageY;
+
+        smoothedX = smoothedX * smoothingFactor + adjustedX * (1 - smoothingFactor);
+        smoothedY = smoothedY * smoothingFactor + adjustedY * (1 - smoothingFactor);
+
+        drawFingerIndicator([smoothedX, smoothedY]);
+        checkPianoKeyPress(); // 이 부분을 추가합니다.
+    } else {
+        fingerIndicator.style.display = 'none';
+    }
+
+    requestAnimationFrame(detectHand);
+}
+
+
+function drawFingerIndicator(position) {
+    const videoRect = video.getBoundingClientRect();
+    const scaleX = videoRect.width / video.videoWidth;
+    const scaleY = videoRect.height / video.videoHeight;
+
+    // 좌표를 스무딩하여 더 부드럽게 따라오도록 설정
+    const smoothX = position[0] * scaleX;
+    const smoothY = position[1] * scaleY;
+
+    // 손가락 위치에 맞춰 빨간 점 위치 업데이트
+    fingerIndicator.style.left = `${smoothX}px`;
+    fingerIndicator.style.top = `${smoothY}px`;
+    fingerIndicator.style.display = 'block'; // 손가락이 감지되면 표시
+}
+
+
+
+
+
+
+async function init() {
+    await setupWebcam();
+    await loadHandposeModel();
+    detectHand();
+}
+
+init();
 
 let score = 0;
 let level = 1;
@@ -341,111 +530,68 @@ let noteInterval = 5000; // 초기 속도 (0.6배속)
 let gameStarted = false;
 
 const chopsticksMelody = [
-  { note: "f4,g4", time: 150 },
-  { note: "f4,g4", time: 750 },
-  { note: "f4,g4", time: 1500 },
-  { note: "f4,g4", time: 2250 },
-  { note: "f4,g4", time: 3000 },
-  { note: "f4,g4", time: 3750 },
-  { note: "e4,g4", time: 4500 },
-  { note: "e4,g4", time: 5250 },
-  { note: "e4,g4", time: 6000 },
-  { note: "e4,g4", time: 6750 },
-  { note: "e4,g4", time: 7500 },
-  { note: "e4,g4", time: 8250 },
-  { note: "d4,b5", time: 9000 },
-  { note: "d4,b5", time: 9750 },
-  { note: "d4,b5", time: 10500 },
-  { note: "e4,b5", time: 11250 },
-  { note: "d4,b5", time: 12000 },
-  { note: "d4,b5", time: 12750 },
-  { note: "c4,c5", time: 13500 },
-  { note: "c4,c5", time: 14250 },
-  { note: "c4,c5", time: 15000 },
-  { note: "c4,c5", time: 15750 },
-  { note: "c4,c5", time: 16500 },
-  { note: "d4,b5", time: 17250 },
-  { note: "e4,a5", time: 18000 },
-  { note: "f4,g4", time: 18750 },
-  { note: "f4,g4", time: 19500 },
-  { note: "f4,g4", time: 20250 },
-  { note: "f4,g4", time: 21000 },
-  { note: "f4,g4", time: 21750 },
-  { note: "f4,g4", time: 22500 },
-  { note: "e4,g4", time: 23250 },
-  { note: "e4,g4", time: 24000 },
-  { note: "e4,g4", time: 24750 },
-  { note: "e4,g4", time: 25500 },
-  { note: "e4,g4", time: 26250 },
-  { note: "e4,g4", time: 27000 },
-  { note: "d4,b5", time: 27750 },
-  { note: "d4,b5", time: 28500 },
-  { note: "d4,b5", time: 29250 },
-  { note: "e4,b5", time: 30000 },
-  { note: "d4,b5", time: 30750 },
-  { note: "d4,b5", time: 31500 },
-  { note: "e4,c5", time: 32250 },
+  { note: "c4", time: 500 },
+  { note: "d4", time: 1500 },
+  { note: "e4", time: 2000 },
+  { note: "c4", time: 3500 },
+  { note: "e4", time: 4500 },
+  { note: "c4", time: 5500 },
+  { note: "e4", time: 7500 },
+  { note: "d4", time: 9000 },
+  { note: "e4", time: 10500 },
+  { note: "f4", time: 11000 },
+  { note: "f4", time: 12000 },
+  { note: "e4", time: 12500 },
+  { note: "d4", time: 13000 },
+  { note: "f4", time: 13500 },
+  { note: "e4", time: 15500 },
+  { note: "f4", time: 17000 },
+  { note: "g4", time: 17500 },
+  { note: "e4", time: 19500 },
+  { note: "g4", time: 20000 },
+  { note: "e4", time: 21000 },
+  { note: "g4", time: 21500 },
+  { note: "f4", time: 23500 },
+  { note: "g4", time: 25000 },
+  { note: "a5", time: 25500 },
+  { note: "a5", time: 26000 },
+  { note: "g4", time: 26500 },
+  { note: "f4", time: 27000 },
+  { note: "a5", time: 27500 },
+  { note: "g4", time: 29500 },
+  { note: "c4", time: 31000 },
+  { note: "d4", time: 31500 },
+  { note: "e4", time: 32000 },
+  { note: "f4", time: 32500 },
   { note: "g4", time: 33000 },
-  { note: "e4", time: 33750 },
-  { note: "c4,c5", time: 34500 },
-  { note: "c5,e5", time: 36750 },
-  { note: "b5,d5", time: 37500 },
-  { note: "b5,d5", time: 38250 },
-  { note: "a5,c5", time: 39000 },
-  { note: "g4,b5", time: 39750 },
-  { note: "g4,b5", time: 40500 },
-  { note: "g4,b5", time: 41250 },
-  { note: "f4,a5", time: 42000 },
-  { note: "d4,e4,g4", time: 42750 },
-  { note: "c4,e4,g4", time: 43500 },
-  { note: "e4,g4", time: 44250 },
-  { note: "f4,a5", time: 45000 },
-  { note: "e4,g4", time: 45750 },
-  { note: "d4,f4", time: 46500 },
-  { note: "d4,f4", time: 47250 },
-  { note: "d4,f4", time: 48000 },
-  { note: "d4,f4", time: 48750 },
-  { note: "e4,g4", time: 49500 },
-  { note: "d4,f4", time: 50250 },
-  { note: "c4,e4", time: 51000 },
-  { note: "d4,f4", time: 51750 },
-  { note: "d-4,f4", time: 52500 },
-  { note: "d4,f-4", time: 53250 },
-  { note: "e4,g4", time: 54000 },
-  { note: "f-4,e5", time: 56250 },
-  { note: "f-4,e-5", time: 57000 },
-  { note: "f4,d5", time: 57750 },
-  { note: "f4,d5", time: 58500 },
-  { note: "e4,c5", time: 59250 },
-  { note: "d4,b5", time: 60000 },
-  { note: "d4,b5", time: 60750 },
-  { note: "d4,b5", time: 61500 },
-  { note: "c4,a5", time: 62250 },
-  { note: "d4,e4,g4", time: 63000 },
-  { note: "c4,e4,g4", time: 63750 },
-  { note: "c4,e4,g4", time: 64500 },
-  { note: "e4,g4", time: 65250 },
-  { note: "f4,a5", time: 66000 },
-  { note: "e4,g4", time: 66750 },
-  { note: "a3,f4", time: 67500 },
-  { note: "a3,f4", time: 68250 },
-  { note: "a3,f4", time: 69750 },
-  { note: "a3,f4", time: 70500 },
-  { note: "b3,g4", time: 71250 },
-  { note: "a4,f4", time: 72000 },
-  { note: "g3,e4", time: 72750 },
-  { note: "g3,e4", time: 73500 },
-  { note: "a3,f4", time: 74250 },
-  { note: "b3,g4", time: 75000 },
-  { note: "g3,g4", time: 75750 }
+  { note: "a5", time: 33500 },
+  { note: "a5", time: 35500 },
+  { note: "d4", time: 37000 },
+  { note: "e4", time: 37500 },
+  { note: "f-4", time: 38000 },
+  { note: "g4", time: 38500 },
+  { note: "a5", time: 39000 },
+  { note: "b5", time: 39500 },
+  { note: "b5", time: 42000 },
+  { note: "e4", time: 43500 },
+  { note: "f-4", time: 44000 },
+  { note: "g-4", time: 44500 },
+  { note: "a5", time: 45000 },
+  { note: "b5", time: 45500 },
+  { note: "c5", time: 46000 },
+  { note: "b5", time: 49000 },
+  { note: "a-5", time: 49500 },
+  { note: "a5", time: 50000 },
+  { note: "f4", time: 51000 },
+  { note: "b5", time: 52000 },
+  { note: "g5", time: 53000 },
+  { note: "c5", time: 54000 },
+  { note: "g4", time: 55000 },
+  { note: "e4", time: 56000 },
+  { note: "d4", time: 57000 },
 ];
 
 
-
-startGif.addEventListener('click', () => {
-    startScreen.style.display = 'none';
-    startCountdown();
-});
 
 
 function startCountdown() {
@@ -511,8 +657,7 @@ function createNote(notes) {
             noteElement.textContent = key.getAttribute('data-key').split(',')[0];
             gameContainer.appendChild(noteElement);
 
-            noteElement.style.animation = `fall ${noteInterval / 1000}s linear`;
-            noteElement.addEventListener('animationend', () => {
+            noteElement.style.animation = `fall ${noteInterval / 1000}s linear`;            noteElement.addEventListener('animationend', () => {
             noteElement.remove();
             consecutiveMisses++;
             checkGameOver();
@@ -520,19 +665,20 @@ function createNote(notes) {
         }
     });
 }
+let activeKeys = {};  // 건반 상태 추적
 
-function activateKey(keyElement) {
-    if (!keyElement) return;
 
-    const note = keyElement.getAttribute('data-note');
+function activateKey(key) {
+  const note = key.getAttribute("data-note");
+  if (!key.classList.contains("active")) {
+    key.classList.add("active");
     playSound(note);
+    checkNoteHit(note, key);
+  }
+}
 
-    keyElement.classList.add('active');
-    setTimeout(() => {
-        keyElement.classList.remove('active');
-    }, 300);
-
-    checkNoteHit(note, keyElement);
+function releaseKey(key) {
+  key.classList.remove("active");
 }
 
 function checkNoteHit(note, keyElement) {
@@ -597,20 +743,31 @@ function showFeedback(type, element) {
 function updateLevel() {
   level++;
   levelElement.textContent = `레벨: ${level}`;
-  levelUpElement.textContent = `레벨 ${level}`;
-  levelUpElement.style.display = 'block';
-
-  setTimeout(() => {
-    levelUpElement.style.display = 'none';
-    // 1초 후에 새로운 노트 생성 시작
-    setTimeout(() => {
-      playMelody();
-    }, 1000);
-  }, 2000);
-
-  if (level >= 2) {
-    noteInterval = Math.max(1000, noteInterval - 50);
-  }
+  
+  // 모든 노트가 사라질 때까지 기다립니다.
+  const waitForNotes = setInterval(() => {
+    if (document.querySelectorAll('.note').length === 0) {
+      clearInterval(waitForNotes);
+      
+      // 레벨 업 텍스트를 표시하기 전에 2초 기다립니다.
+      setTimeout(() => {
+        levelUpElement.textContent = `레벨 ${level}`;
+        levelUpElement.style.display = 'block';
+        
+        // 레벨 업 텍스트를 3초 동안 표시한 후 사라지게 합니다.
+        setTimeout(() => {
+          levelUpElement.style.display = 'none';
+          
+          // 노드 속도를 1.4배 빠르게 만듭니다.
+          noteInterval = noteInterval / 1.4;
+          console.log(`레벨업! 현재 노드 속도: ${noteInterval} ms`);
+          
+          // 새로운 노트 생성 시작
+          playMelody();
+        }, 3000);
+      }, 2000); // 레벨 업 텍스트가 나타나기 전 2초 지연
+    }
+  }, 100);
 }
 
 function startGame() {
@@ -628,6 +785,13 @@ function startGame() {
     scoreElement.textContent = `점수: ${score}`;
     levelElement.textContent = `레벨: ${level}`;
 
+    if (gameMode === 'hand') {
+        detectHand();
+    } else {
+        // 키보드 모드에서는 손 인식을 비활성화합니다.
+        fingerIndicator.style.display = 'none';
+    }
+
     playMelody();
 }
 let melodyTimeouts = [];
@@ -643,19 +807,28 @@ function playMelody() {
             if (index === chopsticksMelody.length - 1) {
                 setTimeout(() => {
                     updateLevel();
-                    playMelody();
                 }, 1000);
             }
-        }, time * (noteInterval / 5000)); // noteInterval을 2800으로 나눔
+        }, time * (noteInterval / 5000));
         melodyTimeouts.push(timeout);
     });
 }
 
 window.addEventListener('keydown', (e) => {
+    if (gameMode !== 'keyboard') return;
     const keyElement = document.querySelector(`.key[data-key*="${e.key}"]`);
-    activateKey(keyElement);
+    if (keyElement) {
+        activateKey(keyElement);
+    }
 });
 
+window.addEventListener('keyup', (e) => {
+    if (gameMode !== 'keyboard') return;
+    const keyElement = document.querySelector(`.key[data-key*="${e.key}"]`);
+    if (keyElement) {
+        releaseKey(keyElement);
+    }
+});
 keys.forEach(key => {
     key.addEventListener('click', () => activateKey(key));
     const timingBar = document.createElement('div');
